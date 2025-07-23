@@ -1,29 +1,29 @@
 # PassAuth Stream Cipher - Simple Version
 
-A complete implementation of the PassAuth Stream Cipher in a single Java file for easy distribution and understanding.
+A complete implementation of the PassAuth Stream Cipher in a single Java file for easy distribution and understanding. **Text encryption only** - streamlined for simplicity.
 
 ## Features
 
 - **Single File Implementation**: Everything in one Java file (`PassAuthSimple.java`)
 - **Hand-implemented Cryptography**: Custom SaiSecureStreamCipher algorithm
 - **HMAC Key Derivation**: Secure H(IV, password) key derivation
-- **GUI Interface**: Easy-to-use Swing GUI
-- **File & Text Encryption**: Support for both modes
+- **Simple GUI Interface**: Clean, focused interface for text encryption only
 - **No External Dependencies**: Uses only Java standard library
+- **Ultra-Compact**: Only ~15KB source code
 
 ## Quick Start
 
-### Windows
+### Windows (Recommended)
 
-```batch
-# Just double-click run.bat or:
-run.bat
+```powershell
+# Right-click run.ps1 and select "Run with PowerShell" or:
+.\run.ps1
 ```
 
-### Linux/macOS
+### Cross-Platform (Manual)
 
 ```bash
-# Compile and run
+# Compile and run manually
 javac PassAuthSimple.java
 java PassAuthSimple
 ```
@@ -31,18 +31,23 @@ java PassAuthSimple
 ## Requirements
 
 - Java 8 or higher (no Maven required)
-- About 500KB of disk space
+- About 100KB of disk space
 
 ## What's Different from Full Version?
 
-| Feature             | Full Version        | Simple Version    |
-| ------------------- | ------------------- | ----------------- |
-| Files               | 4 separate classes  | 1 single file     |
-| Build System        | Maven required      | Simple javac      |
-| Size                | ~50KB source        | ~25KB source      |
-| Password Validation | Advanced validation | Basic validation  |
-| Modularity          | Highly modular      | Monolithic        |
-| Maintenance         | Enterprise-ready    | Educational focus |
+| Feature             | Full Version        | Simple Version       |
+| ------------------- | ------------------- | -------------------- |
+| Files               | 4 separate classes  | 1 single file        |
+| Build System        | Maven required      | Simple javac         |
+| Size                | ~50KB source        | ~15KB source         |
+| GUI                 | Tabbed interface    | Single window        |
+| Encryption          | Text + Files        | Text only            |
+| Features            | Password validation | Core encryption only |
+| Build System        | Maven required      | Simple javac         |
+| Size                | ~50KB source        | ~25KB source         |
+| Password Validation | Advanced validation | Basic validation     |
+| Modularity          | Highly modular      | Monolithic           |
+| Maintenance         | Enterprise-ready    | Educational focus    |
 
 ## Architecture
 
@@ -99,8 +104,11 @@ This single-file version is perfect for:
 
 ## File Size Comparison
 
-- `PassAuthSimple.java`: ~25KB (everything included)
-- Full version: ~50KB across 4 files + pom.xml
+- `PassAuthSimple.java`: ~20KB (everything included)
+- `run.ps1`: ~0.4KB (PowerShell runner script)
+- `README.md`: ~4KB (documentation)
+- **Total**: ~25KB for complete simple version
+- Full version: ~50KB across multiple files + Maven
 - Python version: ~15KB across multiple files
 
 ## Quick Test

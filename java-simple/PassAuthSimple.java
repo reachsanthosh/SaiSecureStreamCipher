@@ -1,16 +1,8 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.*;
-import java.util.List;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -28,7 +20,6 @@ public class PassAuthSimple extends JFrame {
     private JPasswordField passwordField;
     private JLabel statusLabel;
     private JProgressBar progressBar;
-    private static final boolean DEBUG = false;
 
     // Cryptographic constants
     private static final int IV_SIZE = 16;
@@ -40,20 +31,16 @@ public class PassAuthSimple extends JFrame {
     }
 
     private void initializeGUI() {
-        setTitle("PassAuth Stream Cipher - Simple Version");
+        setTitle("Password Based Stream Cipher");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(900, 700);
+        setSize(700, 500);
         setLocationRelativeTo(null);
 
-        JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("Text Encryption", createTextPanel());
-        tabbedPane.addTab("File Encryption", createFilePanel());
-        tabbedPane.addTab("Information", createInfoPanel());
-
+        JPanel mainPanel = createTextPanel();
         JPanel statusPanel = createStatusPanel();
 
         setLayout(new BorderLayout());
-        add(tabbedPane, BorderLayout.CENTER);
+        add(mainPanel, BorderLayout.CENTER);
         add(statusPanel, BorderLayout.SOUTH);
     }
 
@@ -71,10 +58,38 @@ public class PassAuthSimple extends JFrame {
         inputPanel.add(inputScroll, BorderLayout.CENTER);
 
         // Password panel
-        JPanel passwordPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        passwordPanel.add(new JLabel("Password:"));
+        JPanel passwordPanel = new JPanel(new BorderLayout());
+
+        JPanel passwordInputPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        passwordInputPanel.add(new JLabel("Password:"));
         passwordField = new JPasswordField(20);
-        passwordPanel.add(passwordField);
+        passwordInputPanel.add(passwordField);
+
+        JPanel strengthPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        strengthPanel.add(new JLabel("Strength: "));
+
+        JLabel strengthLabel = new JLabel("Enter password");
+        strengthLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        strengthLabel.setPreferredSize(new Dimension(600, 20));
+        strengthPanel.add(strengthLabel);
+
+        passwordPanel.add(passwordInputPanel, BorderLayout.NORTH);
+        passwordPanel.add(strengthPanel, BorderLayout.SOUTH);
+
+        // Add password change listener
+        passwordField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                updatePasswordStrength(strengthLabel);
+            }
+
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                updatePasswordStrength(strengthLabel);
+            }
+
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                updatePasswordStrength(strengthLabel);
+            }
+        });
 
         // Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout());
@@ -104,99 +119,6 @@ public class PassAuthSimple extends JFrame {
         panel.add(passwordPanel, BorderLayout.CENTER);
         panel.add(buttonPanel, BorderLayout.CENTER);
         panel.add(outputPanel, BorderLayout.SOUTH);
-
-        return panel;
-    }
-
-    private JPanel createFilePanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
-        GridBagConstraints gbc = new GridBagConstraints();
-
-        // Instructions
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 5, 5, 5);
-
-        JPanel fileSelectPanel = new JPanel(new BorderLayout());
-        fileSelectPanel.setBorder(BorderFactory.createTitledBorder("File Operations"));
-        JTextArea fileInstructions = new JTextArea(
-                "Select a file to encrypt or decrypt.\n" +
-                        "Encrypted files will have .encrypted extension.\n" +
-                        "Make sure to remember your password!");
-        fileInstructions.setEditable(false);
-        fileInstructions.setBackground(panel.getBackground());
-        fileSelectPanel.add(fileInstructions, BorderLayout.CENTER);
-        panel.add(fileSelectPanel, gbc);
-
-        // Password field
-        gbc.gridy++;
-        gbc.gridwidth = 1;
-        gbc.gridx = 0;
-        panel.add(new JLabel("Password:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        JPasswordField filePasswordField = new JPasswordField(20);
-        panel.add(filePasswordField, gbc);
-
-        // Buttons
-        gbc.gridy++;
-        gbc.gridx = 0;
-        gbc.gridwidth = 2;
-        gbc.fill = GridBagConstraints.NONE;
-
-        JPanel fileButtonPanel = new JPanel(new FlowLayout());
-        JButton encryptFileBtn = new JButton("Encrypt File");
-        JButton decryptFileBtn = new JButton("Decrypt File");
-
-        encryptFileBtn.addActionListener(e -> encryptFile(filePasswordField));
-        decryptFileBtn.addActionListener(e -> decryptFile(filePasswordField));
-
-        fileButtonPanel.add(encryptFileBtn);
-        fileButtonPanel.add(decryptFileBtn);
-        panel.add(fileButtonPanel, gbc);
-
-        return panel;
-    }
-
-    private JPanel createInfoPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
-
-        JTextArea infoText = new JTextArea();
-        infoText.setEditable(false);
-        infoText.setLineWrap(true);
-        infoText.setWrapStyleWord(true);
-
-        String info = "PassAuth Stream Cipher - Simple Version\n\n" +
-                "FEATURES:\n" +
-                "• Hand-implemented SaiSecureStreamCipher\n" +
-                "• H(IV, password) key derivation using HMAC\n" +
-                "• Secure file and text encryption\n" +
-                "• Single file implementation for easy distribution\n\n" +
-                "SECURITY FEATURES:\n" +
-                "• 256-bit keys derived from passwords\n" +
-                "• Unique IV and nonce for each encryption\n" +
-                "• Cryptographically secure random generation\n" +
-                "• HMAC-based key derivation\n\n" +
-                "USAGE TIPS:\n" +
-                "• Use strong passwords (12+ characters)\n" +
-                "• Mix letters, numbers, and symbols\n" +
-                "• Keep backups of encrypted files\n" +
-                "• Test with non-critical data first\n\n" +
-                "IMPORTANT:\n" +
-                "• Educational implementation for learning\n" +
-                "• Remember passwords - cannot be recovered\n" +
-                "• Compatible with full Java version\n\n" +
-                "Implementation: Single-file Java application\n" +
-                "All cryptographic functions included in one file";
-
-        infoText.setText(info);
-        JScrollPane scrollPane = new JScrollPane(infoText);
-        panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
     }
@@ -274,69 +196,6 @@ public class PassAuthSimple extends JFrame {
         setStatus("Fields cleared", false);
     }
 
-    private void encryptFile(JPasswordField filePasswordField) {
-        String password = new String(filePasswordField.getPassword());
-
-        if (password.isEmpty()) {
-            showError("Please enter a password for file encryption");
-            return;
-        }
-
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Select file to encrypt");
-
-        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            File inputFile = fileChooser.getSelectedFile();
-            File outputFile = new File(inputFile.getAbsolutePath() + ".encrypted");
-
-            try {
-                setStatus("Encrypting file: " + inputFile.getName(), true);
-                encryptFileData(inputFile.getAbsolutePath(), outputFile.getAbsolutePath(), password);
-                setStatus("File encrypted: " + outputFile.getName(), false);
-                showInfo("File encrypted successfully:\n" + outputFile.getAbsolutePath());
-            } catch (Exception e) {
-                showError("File encryption failed: " + e.getMessage());
-                setStatus("File encryption failed", false);
-            }
-        }
-    }
-
-    private void decryptFile(JPasswordField filePasswordField) {
-        String password = new String(filePasswordField.getPassword());
-
-        if (password.isEmpty()) {
-            showError("Please enter the password for file decryption");
-            return;
-        }
-
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Select encrypted file to decrypt");
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Encrypted files (*.encrypted)", "encrypted");
-        fileChooser.setFileFilter(filter);
-
-        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            File inputFile = fileChooser.getSelectedFile();
-
-            String outputPath = inputFile.getAbsolutePath();
-            if (outputPath.endsWith(".encrypted")) {
-                outputPath = outputPath.substring(0, outputPath.length() - 10);
-            } else {
-                outputPath += ".decrypted";
-            }
-            File outputFile = new File(outputPath);
-
-            try {
-                setStatus("Decrypting file: " + inputFile.getName(), true);
-                decryptFileData(inputFile.getAbsolutePath(), outputFile.getAbsolutePath(), password);
-                setStatus("File decrypted: " + outputFile.getName(), false);
-                showInfo("File decrypted successfully:\n" + outputFile.getAbsolutePath());
-            } catch (Exception e) {
-                showError("File decryption failed: " + e.getMessage());
-                setStatus("File decryption failed", false);
-            }
-        }
-    }
-
     // ========== CORE CRYPTOGRAPHIC FUNCTIONS ==========
 
     /**
@@ -355,24 +214,6 @@ public class PassAuthSimple extends JFrame {
         byte[] encrypted = Base64.getDecoder().decode(base64Encrypted);
         byte[] decrypted = decrypt(encrypted, password);
         return new String(decrypted, "UTF-8");
-    }
-
-    /**
-     * Encrypt file data
-     */
-    public void encryptFileData(String inputPath, String outputPath, String password) throws Exception {
-        byte[] data = Files.readAllBytes(Paths.get(inputPath));
-        byte[] encrypted = encrypt(data, password);
-        Files.write(Paths.get(outputPath), encrypted);
-    }
-
-    /**
-     * Decrypt file data
-     */
-    public void decryptFileData(String inputPath, String outputPath, String password) throws Exception {
-        byte[] encrypted = Files.readAllBytes(Paths.get(inputPath));
-        byte[] decrypted = decrypt(encrypted, password);
-        Files.write(Paths.get(outputPath), decrypted);
     }
 
     /**
@@ -577,6 +418,127 @@ public class PassAuthSimple extends JFrame {
         }
     }
 
+    // ========== PASSWORD VALIDATION METHODS ==========
+
+    private void updatePasswordStrength(JLabel strengthLabel) {
+        String password = new String(passwordField.getPassword());
+
+        if (password.isEmpty()) {
+            strengthLabel.setText("Enter password");
+            strengthLabel.setForeground(Color.GRAY);
+            return;
+        }
+
+        String strength = validatePasswordStrength(password);
+        java.util.List<String> suggestions = getPasswordSuggestions(password);
+
+        switch (strength) {
+            case "weak":
+                strengthLabel.setText("WEAK: " + String.join("; ", suggestions));
+                strengthLabel.setForeground(Color.RED);
+                break;
+            case "medium":
+                strengthLabel.setText("MEDIUM: " + String.join("; ", suggestions));
+                strengthLabel.setForeground(Color.ORANGE);
+                break;
+            case "strong":
+                strengthLabel.setText("STRONG: " + String.join("; ", suggestions));
+                strengthLabel.setForeground(Color.GREEN);
+                break;
+            case "empty":
+                strengthLabel.setText("Enter password");
+                strengthLabel.setForeground(Color.GRAY);
+                break;
+            default:
+                strengthLabel.setText("Unknown strength");
+                strengthLabel.setForeground(Color.GRAY);
+        }
+
+        strengthLabel.revalidate();
+        strengthLabel.repaint();
+    }
+
+    public static String validatePasswordStrength(String password) {
+        if (password == null || password.isEmpty()) {
+            return "empty";
+        }
+
+        int score = 0;
+
+        // Length check
+        if (password.length() >= 8)
+            score++;
+        if (password.length() >= 12)
+            score++;
+        if (password.length() >= 16)
+            score++;
+
+        // Character type checks
+        if (password.matches(".*[a-z].*"))
+            score++; // lowercase
+        if (password.matches(".*[A-Z].*"))
+            score++; // uppercase
+        if (password.matches(".*\\d.*"))
+            score++; // digits
+        if (password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*"))
+            score++; // special chars
+
+        // Complexity bonuses
+        if (password.length() >= 20)
+            score++;
+        if (password.matches(".*[a-z].*") && password.matches(".*[A-Z].*") &&
+                password.matches(".*\\d.*") && password.matches(".*[!@#$%^&*()].*")) {
+            score++; // All character types
+        }
+
+        if (score <= 3)
+            return "weak";
+        if (score <= 6)
+            return "medium";
+        return "strong";
+    }
+
+    public static java.util.List<String> getPasswordSuggestions(String password) {
+        java.util.List<String> suggestions = new java.util.ArrayList<>();
+
+        if (password == null || password.isEmpty()) {
+            suggestions.add("Please enter a password");
+            return suggestions;
+        }
+
+        if (password.length() < 8) {
+            suggestions.add("Use at least 8 characters");
+        } else if (password.length() < 12) {
+            suggestions.add("Consider 12+ characters for better security");
+        }
+
+        if (!password.matches(".*[a-z].*")) {
+            suggestions.add("Add lowercase letters");
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            suggestions.add("Add uppercase letters");
+        }
+        if (!password.matches(".*\\d.*")) {
+            suggestions.add("Add numbers");
+        }
+        if (!password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*")) {
+            suggestions.add("Add special characters");
+        }
+
+        // Common patterns to avoid
+        if (password.matches(".*123.*") || password.matches(".*abc.*") ||
+                password.toLowerCase().matches(".*password.*") ||
+                password.toLowerCase().matches(".*qwerty.*")) {
+            suggestions.add("Avoid common patterns");
+        }
+
+        if (suggestions.isEmpty()) {
+            suggestions.add("Good password strength!");
+        }
+
+        return suggestions;
+    }
+
     // ========== UI UTILITY METHODS ==========
 
     private void setStatus(String message, boolean showProgress) {
@@ -591,10 +553,6 @@ public class PassAuthSimple extends JFrame {
 
     private void showError(String message) {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
-    }
-
-    private void showInfo(String message) {
-        JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
 
     // ========== MAIN METHOD ==========
